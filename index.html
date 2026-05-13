@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chorus Seating Chart</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@300;400;600&display=swap');
 
@@ -104,6 +106,7 @@
   .sidebar {
     width: 220px;
     min-width: 220px;
+    height: 100%;
     background: var(--surface);
     border-right: 1px solid var(--border);
     display: flex;
@@ -127,10 +130,13 @@
   .sidebar-pool {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    /* This element must be the one that clips and scrolls, not the parent */
+    min-height: 0;
   }
 
   .sidebar-pool.drag-over {
@@ -226,16 +232,25 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+    /* Ensure cards wrap within the sidebar width */
+    width: 100%;
   }
 
-  /* ── Stage area ── */
+  /* Cards in the pool should flex to fill two per row */
+  .pool-section-group .singer-card {
+    flex: 0 0 calc(50% - 2px);
+    width: calc(50% - 2px);
+    min-width: 0;
+  }
+
+   /* ── Stage area ── */
   .stage-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
-
+ 
   .stage-toolbar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -249,21 +264,27 @@
     font-size: 0.8rem;
     color: var(--muted);
   }
-
+ 
   .stage-scroll {
     flex: 1;
     overflow: auto;
-    padding: 32px 24px;
+    padding: 32px 48px;
   }
-
+ 
+  .stage-scroll-inner {
+    width: max-content;
+    margin: 0 auto;
+  }
+ 
   .stage {
     min-width: 600px;
+    width: max-content;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 0;
   }
-
+ 
   /* Stage indicator */
   .stage-front-label {
     font-family: 'Playfair Display', serif;
@@ -277,15 +298,21 @@
     width: 100%;
     text-align: center;
   }
-
+ 
   /* ── Risers / Rows ── */
   .riser-row {
     display: flex;
     align-items: flex-end;
     margin-bottom: 8px;
     position: relative;
+    justify-content: flex-start;
   }
 
+  .riser-row.staggered {
+    margin-left: 49px;
+  }
+
+ 
   .riser-controls {
     display: flex;
     flex-direction: column;
@@ -297,7 +324,7 @@
     transition: opacity 0.2s;
   }
   .riser-row:hover .riser-controls { opacity: 1; }
-
+ 
   .riser-btn {
     width: 20px;
     height: 20px;
@@ -315,7 +342,7 @@
     font-weight: 700;
   }
   .riser-btn:hover { background: var(--accent); color: #fff; opacity: 1; }
-
+ 
   .riser-label {
     font-size: 0.65rem;
     color: var(--muted);
@@ -326,7 +353,7 @@
     margin-right: 4px;
     letter-spacing: 0.08em;
   }
-
+ 
   /* ── Slots ── */
   .slots-container {
     display: flex;
@@ -334,7 +361,7 @@
     align-items: flex-end;
     flex-wrap: nowrap;
   }
-
+ 
   .slot {
     width: 92px;
     height: 76px;
@@ -342,34 +369,22 @@
     border: 2px dashed var(--border);
     background: rgba(255,255,255,0.6);
     display: flex;
-    align-items: left;
+    align-items: center;
     justify-content: center;
     position: relative;
     transition: border-color 0.15s, background 0.15s;
     flex-shrink: 0;
   }
-
-  .dummyslot {
-    width: 92px;
-    height: 76px;
-    border-radius: var(--radius);
-    display: flex;
-    align-items: left;
-    justify-content: center;
-    position: relative;
-    transition: border-color 0.15s, background 0.15s;
-    flex-shrink: 0;
-  }
-
+ 
   .slot.stagger-up {
-    margin-left: 46px;
+    margin-bottom: 20px;
   }
-
+ 
   .slot.drag-over {
     border-color: var(--accent);
     background: rgba(92,61,46,0.06);
   }
-
+ 
   /* slot delete X */
   .slot-delete {
     position: absolute;
@@ -389,7 +404,7 @@
     font-weight: 700;
   }
   .slot:hover .slot-delete { display: block; }
-
+ 
   /* Add slot / add row buttons */
   .add-slot-btn {
     width: 36px;
@@ -415,18 +430,20 @@
     background: rgba(92,61,46,0.06);
     opacity: 1;
   }
-
+ 
   .add-row-btn {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
+    width: 100%;
     background: transparent;
     color: var(--muted);
     border: 2px dashed var(--border);
     padding: 8px 20px;
     border-radius: 8px;
     font-size: 0.82rem;
-    margin-top: 8px;
+    margin-bottom: 8px;
     transition: border-color 0.15s, color 0.15s;
   }
   .add-row-btn:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
@@ -546,7 +563,9 @@
     .add-slot-btn, .riser-controls, .card-delete, .slot-delete,
     .riser-btn, .stage-toolbar { display: none !important; }
 
-    body { background: #fff; }
+    body {
+      background: #fff;
+    }
     .app-body { height: auto; }
     .stage-wrapper { overflow: visible; }
     .stage-scroll { overflow: visible; padding: 16px; }
@@ -556,6 +575,7 @@
     .slot {
       border: 1px solid #ccc;
     }
+
   }
 </style>
 </head>
@@ -571,7 +591,7 @@
     <button class="btn-ghost" onclick="openAddSinger()">+ Add Singer</button>
     <button class="btn-ghost" onclick="openImport()">Import Roster</button>
     <button class="btn-ghost" onclick="openReshapeStage()">Reshape Stage</button>
-    <button class="btn-primary" onclick="window.print()">Print / PDF</button>
+    <button class="btn-primary" onclick="exportPDF()">Print / PDF</button>
   </div>
 </header>
 
@@ -833,6 +853,9 @@ function renderStage() {
     rowEl.className = 'riser-row';
     rowEl.dataset.rowId = row.id;
 
+    if (row.stagger) {
+      rowEl.classList.add('staggered');
+    }
     // Row controls
     const ctrl = document.createElement('div');
     ctrl.className = 'riser-controls';
@@ -851,17 +874,6 @@ function renderStage() {
     slotsEl.className = 'slots-container';
 
     row.slots.forEach((singerId, slotIdx) => {
-
-        if (row.stagger && (slotIdx == 0)) {
-            const dummyslot = document.createElement('div');
-            dummyslot.className = 'dummyslot';
-            const dummyph = document.createElement('span');
-            //dummyph.style.cssText = 'font-size:0.65rem;color:var(--muted);text-align:center;pointer-events:none;';
-            //dummyph.textContent = 'dummy';
-            dummyslot.appendChild(dummyph);;
-            slotsEl.appendChild(dummyslot);
-        }
-        
       const slot = document.createElement('div');
       slot.className = 'slot';
 
@@ -1189,6 +1201,98 @@ document.addEventListener('keydown', e => {
     closeModal('importModal');
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+//  Export PDF — clones stage into a sized print window
+// ─────────────────────────────────────────────────────────────
+async function exportPDF() {
+  showToast('Generating PDF…');
+
+  // Collect all inline styles from the current document
+  const styleText = Array.from(document.styleSheets)
+    .map(ss => {
+      try { return Array.from(ss.cssRules).map(r => r.cssText).join('\n'); }
+      catch(e) { return ''; }
+    }).join('\n');
+
+  // Clone the stage element
+  const stageEl = document.getElementById('stage');
+  const clone = stageEl.cloneNode(true);
+
+  // Remove UI-only elements from clone
+  clone.querySelectorAll(
+    '.add-row-btn, .add-slot-btn, .riser-controls, .card-delete, .slot-delete, .singer-height'
+  ).forEach(el => el.remove());
+
+  // Measure true unconstrained stage dimensions by temporarily removing
+  // the scroll container's clipping so scrollWidth/Height are accurate
+  const scrollEl = document.querySelector('.stage-scroll');
+  const prevOverflow = scrollEl.style.overflow;
+  scrollEl.style.overflow = 'visible';
+  const fullW = stageEl.scrollWidth;
+  const fullH = stageEl.scrollHeight;
+  scrollEl.style.overflow = prevOverflow;
+
+  const margin = 60; // px — generous enough that cell borders are never clipped
+  const winW = fullW + margin * 2;
+  const winH = fullH + margin * 2;
+
+  const printWin = window.open('', '_blank',
+    `width=${winW},height=${winH},scrollbars=no,toolbar=no,menubar=no`);
+
+  if (!printWin) {
+    showToast('Pop-up blocked — allow pop-ups and try again');
+    return;
+  }
+
+  printWin.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Chorus Seating Chart</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@300;400;600&display=swap');
+  ${styleText}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html {
+    background: #f7f4ef;
+  }
+  body {
+    /* Explicit margin on all four sides — no 'auto' which collapses the right margin */
+    margin: ${margin}px;
+    background: #f7f4ef;
+  }
+  /* Force stage to its natural full size — no scroll containers */
+  #stage, .stage {
+    width: max-content !important;
+    min-width: unset !important;
+    overflow: visible !important;
+    flex-shrink: 0;
+  }
+  .stage-scroll-inner { min-width: unset !important; margin: 0 !important; }
+  .riser-row.staggered { margin-left: 49px; }
+  /* Suppress any interactive chrome */
+  .add-row-btn, .add-slot-btn, .riser-controls,
+  .card-delete, .slot-delete, .singer-height { display: none !important; }
+  @page {
+    size: ${winW}px ${winH}px;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+  ${clone.outerHTML}
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); window.close(); }, 500);
+    };
+  <\/script>
+</body>
+</html>`);
+
+  printWin.document.close();
+  showToast('Print dialog opened');
+}
 
 // ─────────────────────────────────────────────────────────────
 //  Init: seed a couple of default rows
