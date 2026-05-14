@@ -583,7 +583,7 @@
 
 <!-- Header -->
 <header>
-  <h1>Steeeeeeeeve</h1>
+  <h1>Seating Chart Maker</h1>
   <div class="header-controls">
     <label class="toggle-label">
       <input type="checkbox" id="toggleHeights"> Show Heights
@@ -707,7 +707,7 @@
 // ─────────────────────────────────────────────────────────────
 //  State 
 // ─────────────────────────────────────────────────────────────
-let singers = [];     // { id, name, part, height }
+let singers = [];     // { id, name, part, height, rowIdx }
 let rows = [];        // [{ id, slots: [singerId|null, ...], stagger: bool }]
 let showHeights = false;
 let draggedSingerId = null;
@@ -790,10 +790,10 @@ function renderPool() {
     if (dragSource && typeof dragSource === 'object') {
       const srcRow = rows.find(r => r.id === dragSource.rowId);
       if (srcRow) srcRow.slots[dragSource.slotIdx] = null;
-      console.log(draggedSingerId);
-      console.log(dragSource);
-      console.log(srcRow);
     }
+
+    const tarSinger = singers.find(s => s.id === draggedSingerId);
+    tarSinger.singerRow = null;
 
     render();
     showToast(`${getSinger(draggedSingerId)?.name} removed from chart`);
@@ -814,7 +814,7 @@ function makeSingerCard(singer, source) {
   card.innerHTML = `
     <div class="singer-arrow">${p.arrow}</div>
     <div class="singer-name">${singer.name}</div>
-    <div class="singer-part">${singer.part}</div>
+    <div class="singer-part">${singer.singerRow ? singer.singerRow : ""}</div>
     ${singer.height ? `<div class="singer-height no-print">${singer.height}</div>` : ''}
     <div class="card-delete" title="Remove singer" onclick="returnSinger(event,'${singer.id}')">✕</div>
   `;
@@ -1001,6 +1001,8 @@ function handleDrop(targetRowId, targetSlotIdx, currentOccupant) {
   // If target already has someone, send them back (swap to pool)
   // just clear the old slot — they'll appear in pool
   targetRow.slots[targetSlotIdx] = draggedSingerId;
+  const tarSinger = singers.find(s => s.id === draggedSingerId);
+  tarSinger.singerRow = targetSlotIdx + 1;
   render();
   showToast(`${getSinger(draggedSingerId)?.name} placed`);
 }
@@ -1079,7 +1081,7 @@ function addSingerFromForm() {
   const part = document.getElementById('singerPart').value;
   const height = document.getElementById('singerHeightInput').value.trim();
   if (!name) { showToast('Please enter a name'); return; }
-  singers.push({ id: uid(), name, part, height });
+  singers.push({ id: uid(), name, part, height, singerRow: null });
   closeModal('addSingerModal');
   render();
   showToast(`Added ${name}`);
@@ -1168,7 +1170,7 @@ function processFile(file) {
 
 function confirmImport() {
   pendingImport.forEach(p => {
-    singers.push({ id: uid(), name: p.name, part: p.part, height: p.height });
+    singers.push({ id: uid(), name: p.name, part: p.part, height: p.height, singerRow: null });
   });
   closeModal('importModal');
   render();
