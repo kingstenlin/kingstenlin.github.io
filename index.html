@@ -983,7 +983,7 @@
   <div class="modal">
     <h2>Import Roster from Excel</h2>
     <p style="font-size:0.85rem;color:var(--muted);margin-bottom:16px;">
-      Expected columns: <strong>Column A</strong> = Name, <strong>Column B</strong> = Part (S1/S2/A1/A2/T1/T2/B1/B2), <strong>Column C</strong> = Height (optional)
+      Expected columns: <strong>Column A</strong> = First, <strong>Column B</strong> = Last, <strong>Column C</strong> = Part (S1/S2/A1/A2/T1/T2/B1/B2), <strong>Column D</strong> = Height (optional)
     </p>
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
@@ -1699,9 +1699,9 @@ function processFile(file) {
       let skipped = 0;
       rows2.forEach((row, i) => {
         if (i === 0 && typeof row[0] === 'string' && row[0].toLowerCase().includes('name')) return;
-        const name = String(row[0] || '').trim();
-        const partRaw = row[1];
-        const height = String(row[2] || '').trim();
+        const name = String(row[0] || '').trim() + ' ' + String(row[1] || '').trim();
+        const partRaw = row[2];
+        const height = String(row[3] || '').trim();
         if (!name) return;
         const part = normalizePartStr(partRaw);
         if (!part) { skipped++; return; }
