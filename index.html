@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chorus Seating Chart</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@300;400;600&display=swap');
 
@@ -18,14 +16,14 @@
     --muted: #8a8078;
     --accent: #5c3d2e;
 
-    --s1: #e07b54; --s2-light: #fef0ea; 
+    --s1: #e07b54; --s1-light: #fef0ea;
     --s2: #e07b54; --s2-light: #fef0ea;
     --a1: #d8ca2f; --a1-light: #efedd2;
     --a2: #d8ca2f; --a2-light: #efedd2;
     --t1: #27ae60; --t1-light: #e9f7ef;
-    --t2: #27ae60; --t1-light: #e9f7ef;
-    --b1: #1a6b8a; --a2-light: #e5f3f8;
-    --b2: #1a6b8a; --a2-light: #e5f3f8;
+    --t2: #27ae60; --t2-light: #e9f7ef;
+    --b1: #1a6b8a; --b1-light: #e5f3f8;
+    --b2: #1a6b8a; --b2-light: #e5f3f8;
 
     --radius: 6px;
     --shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -39,6 +37,8 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 
   header {
@@ -50,6 +50,7 @@
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
+    flex-shrink: 0;
   }
 
   header h1 {
@@ -83,6 +84,7 @@
   .btn-ghost { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
   .btn-danger { background: #c0392b; color: #fff; }
   .btn-sm { padding: 5px 10px; font-size: 0.78rem; }
+  .btn-accent { background: var(--accent); color: #fff; }
 
   .toggle-label {
     display: flex;
@@ -115,17 +117,83 @@
   }
 
   .sidebar-header {
-    padding: 12px 14px;
+    padding: 10px 12px 6px;
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
   }
   .sidebar-header span {
     font-family: 'Playfair Display', serif;
     font-size: 0.95rem;
     font-weight: 700;
   }
+
+  /* Pool search & filter bar */
+  .pool-controls {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .pool-search-wrap {
+    position: relative;
+  }
+  .pool-search-wrap input {
+    width: 100%;
+    padding: 5px 8px 5px 28px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.82rem;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+  }
+  .pool-search-wrap input:focus { border-color: var(--accent); }
+  .pool-search-wrap .search-icon {
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  /* Part filter chips */
+  .pool-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .filter-chip {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.12s;
+    opacity: 0.55;
+  }
+  .filter-chip.active { opacity: 1; border-color: currentColor; }
+  .filter-chip-all {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    cursor: pointer;
+    background: var(--border);
+    color: var(--text);
+    border: none;
+    transition: all 0.12s;
+  }
+  .filter-chip-all.active { background: var(--accent); color: #fff; }
 
   .sidebar-pool {
     flex: 1;
@@ -135,7 +203,6 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    /* This element must be the one that clips and scrolls, not the parent */
     min-height: 0;
   }
 
@@ -172,9 +239,7 @@
     flex-shrink: 0;
   }
   .singer-card:active { cursor: grabbing; }
-  .singer-card.dragging {
-    opacity: 0.4;
-  }
+  .singer-card.dragging { opacity: 0.4; }
   .singer-card.drag-ghost {
     opacity: 1;
     box-shadow: var(--shadow-drag);
@@ -232,25 +297,22 @@
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    /* Ensure cards wrap within the sidebar width */
     width: 100%;
   }
-
-  /* Cards in the pool should flex to fill two per row */
   .pool-section-group .singer-card {
     flex: 0 0 calc(50% - 2px);
     width: calc(50% - 2px);
     min-width: 0;
   }
 
-   /* ── Stage area ── */
+  /* ── Stage area ── */
   .stage-wrapper {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
- 
+
   .stage-toolbar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -259,23 +321,24 @@
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
+    flex-shrink: 0;
   }
   .stage-toolbar span {
     font-size: 0.8rem;
     color: var(--muted);
   }
- 
+
   .stage-scroll {
     flex: 1;
     overflow: auto;
     padding: 32px 48px;
   }
- 
+
   .stage-scroll-inner {
     width: max-content;
     margin: 0 auto;
   }
- 
+
   .stage {
     min-width: 600px;
     width: max-content;
@@ -284,7 +347,7 @@
     align-items: flex-start;
     gap: 0;
   }
- 
+
   /* Stage indicator */
   .stage-front-label {
     font-family: 'Playfair Display', serif;
@@ -298,7 +361,7 @@
     width: 100%;
     text-align: center;
   }
- 
+
   /* ── Risers / Rows ── */
   .riser-row {
     display: flex;
@@ -307,12 +370,8 @@
     position: relative;
     justify-content: flex-start;
   }
+  .riser-row.staggered { margin-left: 49px; }
 
-  .riser-row.staggered {
-    margin-left: 49px;
-  }
-
- 
   .riser-controls {
     display: flex;
     flex-direction: column;
@@ -324,14 +383,14 @@
     transition: opacity 0.2s;
   }
   .riser-row:hover .riser-controls { opacity: 1; }
- 
+
   .riser-btn {
     width: 20px;
     height: 20px;
     border-radius: 4px;
     background: var(--border);
     color: var(--text);
-    font-size: 13px;
+    font-size: 11px;
     line-height: 20px;
     text-align: center;
     cursor: pointer;
@@ -342,7 +401,34 @@
     font-weight: 700;
   }
   .riser-btn:hover { background: var(--accent); color: #fff; opacity: 1; }
- 
+
+  /* Insert row buttons — appear between rows on hover */
+  .insert-row-zone {
+    width: 100%;
+    height: 10px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 2px;
+  }
+  .insert-row-zone:hover { z-index: 10; }
+  .insert-row-btns {
+    display: none;
+    position: absolute;
+    left: 0;
+    gap: 6px;
+    align-items: center;
+  }
+  .insert-row-zone:hover .insert-row-btns { display: flex; }
+  .insert-row-btn {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
   .riser-label {
     font-size: 0.65rem;
     color: var(--muted);
@@ -353,7 +439,7 @@
     margin-right: 4px;
     letter-spacing: 0.08em;
   }
- 
+
   /* ── Slots ── */
   .slots-container {
     display: flex;
@@ -361,7 +447,7 @@
     align-items: flex-end;
     flex-wrap: nowrap;
   }
- 
+
   .slot {
     width: 92px;
     height: 76px;
@@ -375,16 +461,25 @@
     transition: border-color 0.15s, background 0.15s;
     flex-shrink: 0;
   }
- 
-  .slot.stagger-up {
-    margin-bottom: 20px;
-  }
- 
+  .slot.stagger-up { margin-bottom: 20px; }
   .slot.drag-over {
     border-color: var(--accent);
     background: rgba(92,61,46,0.06);
   }
- 
+
+  /* Greyed-out / obstacle slot */
+  .slot.obstacle {
+    background: #d4cfc8 !important;
+    border: 2px solid #b8b0a6 !important;
+    cursor: default;
+  }
+  .slot.obstacle::after {
+    content: '✕';
+    font-size: 1.4rem;
+    color: #9a9088;
+    font-weight: 300;
+  }
+
   /* slot delete X */
   .slot-delete {
     position: absolute;
@@ -404,7 +499,7 @@
     font-weight: 700;
   }
   .slot:hover .slot-delete { display: block; }
- 
+
   /* Add slot / add row buttons */
   .add-slot-btn {
     width: 36px;
@@ -430,7 +525,7 @@
     background: rgba(92,61,46,0.06);
     opacity: 1;
   }
- 
+
   .add-row-btn {
     display: flex;
     align-items: center;
@@ -448,6 +543,105 @@
   }
   .add-row-btn:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
 
+  /* ── Slot context menu (click empty slot) ── */
+  .slot-menu {
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+    z-index: 500;
+    width: 240px;
+    overflow: hidden;
+    animation: menuIn 0.12s ease;
+  }
+  @keyframes menuIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .slot-menu-search {
+    padding: 10px 10px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .slot-menu-search input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    background: var(--bg);
+  }
+  .slot-menu-search input:focus { border-color: var(--accent); }
+  .slot-menu-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 6px 12px 4px;
+  }
+  .slot-menu-results {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .slot-menu-result {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+    font-size: 0.85rem;
+  }
+  .slot-menu-result:hover { background: var(--bg); }
+  .slot-menu-result-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .slot-menu-result-part {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-left: auto;
+  }
+  .slot-menu-empty {
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-align: center;
+  }
+  .slot-menu-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+  .slot-menu-actions {
+    padding: 6px 8px 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    border-top: 1px solid var(--border);
+  }
+  .slot-menu-action {
+    flex: 1;
+    min-width: calc(50% - 3px);
+    font-size: 0.73rem;
+    padding: 5px 4px;
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .slot-menu-action:hover { background: var(--border); opacity: 1; }
+  .slot-menu-action.danger { color: #c0392b; }
+  .slot-menu-action.obstacle-action { color: #7a7068; }
+
   /* ── Legend ── */
   .legend {
     display: flex;
@@ -456,6 +650,7 @@
     padding: 10px 16px;
     background: var(--surface);
     border-top: 1px solid var(--border);
+    flex-shrink: 0;
   }
   .legend-item {
     display: flex;
@@ -468,6 +663,40 @@
     height: 12px;
     border-radius: 3px;
   }
+
+  /* ── Bottom Panel ── */
+  .bottom-panel {
+    background: var(--accent);
+    color: rgba(255,255,255,0.85);
+    padding: 6px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .bottom-panel-tagline {
+    font-style: italic;
+    opacity: 0.8;
+  }
+  .bottom-panel-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .bottom-btn {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .bottom-btn:hover { background: rgba(255,255,255,0.28); opacity: 1; }
 
   /* ── Modal ── */
   .modal-overlay {
@@ -502,6 +731,62 @@
     margin-top: 20px;
   }
   .btn-cancel { background: var(--border); color: var(--text); }
+
+  /* About modal */
+  .about-modal .modal { width: 480px; }
+  .about-header {
+    text-align: center;
+    padding: 8px 0 20px;
+  }
+  .about-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .about-header p { font-size: 0.9rem; color: var(--muted); }
+  .about-section {
+    margin-bottom: 16px;
+  }
+  .about-section h3 {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .about-section p, .about-section li {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .about-section ul {
+    padding-left: 18px;
+  }
+  .about-section ul li { margin-bottom: 4px; }
+  .about-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 16px 0;
+  }
+  .about-tagline-edit {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .about-tagline-edit input {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.88rem;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+  }
+  .about-tagline-edit input:focus { border-color: var(--accent); }
 
   /* Add singer form */
   .form-row {
@@ -544,7 +829,7 @@
   /* Toast */
   .toast {
     position: fixed;
-    bottom: 24px;
+    bottom: 44px;
     right: 24px;
     background: var(--accent);
     color: #fff;
@@ -557,25 +842,46 @@
   }
   .toast.hidden { opacity: 0; pointer-events: none; }
 
+  /* Export config info */
+  .config-info {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+  .config-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .config-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .config-option:hover { border-color: var(--accent); background: rgba(92,61,46,0.03); }
+  .config-option-icon { font-size: 1.4rem; }
+  .config-option-text strong { display: block; font-size: 0.88rem; }
+  .config-option-text span { font-size: 0.78rem; color: var(--muted); }
+
   /* ── Print styles ── */
   @media print {
     header, .sidebar, .stage-toolbar, .legend, .add-row-btn,
     .add-slot-btn, .riser-controls, .card-delete, .slot-delete,
-    .riser-btn, .stage-toolbar { display: none !important; }
-
-    body {
-      background: #fff;
-    }
+    .riser-btn, .stage-toolbar, .bottom-panel, .insert-row-zone { display: none !important; }
+    body { background: #fff; }
     .app-body { height: auto; }
     .stage-wrapper { overflow: visible; }
     .stage-scroll { overflow: visible; padding: 16px; }
     .stage { min-width: unset; }
     .singer-height { display: none !important; }
-
-    .slot {
-      border: 1px solid #ccc;
-    }
-
+    .slot { border: 1px solid #ccc; }
+    .slot.obstacle { background: #ccc !important; }
   }
 </style>
 </head>
@@ -591,6 +897,7 @@
     <button class="btn-ghost" onclick="openAddSinger()">+ Add Singer</button>
     <button class="btn-ghost" onclick="openImport()">Import Roster</button>
     <button class="btn-ghost" onclick="openReshapeStage()">Reshape Stage</button>
+    <button class="btn-ghost" onclick="openMemoryModal()">💾 Save / Load</button>
     <button class="btn-primary" onclick="exportPDF()">Print / PDF</button>
   </div>
 </header>
@@ -600,7 +907,15 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <span>Singer Pool</span>
-      <button class="btn-sm btn-danger" style="background:transparent;color:#c0392b;padding:2px 6px;" onclick="clearPool()" title="Clear pool">Clear</button>
+      <button class="btn-sm" style="background:transparent;color:#c0392b;padding:2px 6px;" onclick="clearPool()" title="Clear pool">Clear</button>
+    </div>
+    <!-- Search & filter -->
+    <div class="pool-controls">
+      <div class="pool-search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="poolSearch" placeholder="Search singers…" oninput="render()">
+      </div>
+      <div class="pool-filter-chips" id="filterChips"></div>
     </div>
     <div class="sidebar-pool" id="singerPool"></div>
   </aside>
@@ -608,7 +923,7 @@
   <!-- Stage -->
   <div class="stage-wrapper">
     <div class="stage-toolbar">
-      <span>Stage Area — drag singers onto slots</span>
+      <span>Stage Area — drag singers onto slots, or click empty slots</span>
       <button class="btn-sm" style="background:var(--border);color:var(--text);" onclick="clearStage()">Clear Stage</button>
     </div>
 
@@ -622,7 +937,14 @@
   </div>
 </div>
 
-<!-- Add Row button (appended by JS into stage) -->
+<!-- Bottom Panel -->
+<div class="bottom-panel">
+  <span class="bottom-panel-tagline" id="bottomTagline">Chorus Seating Chart Maker</span>
+  <div class="bottom-panel-actions">
+    <button class="bottom-btn" onclick="openAbout()">ℹ About</button>
+    <button class="bottom-btn" onclick="openMemoryModal()">💾 Save / Load</button>
+  </div>
+</div>
 
 <!-- Modal: Add Singer -->
 <div class="modal-overlay hidden" id="addSingerModal">
@@ -665,7 +987,7 @@
     </p>
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
-      <div>📁 Click or drag & drop your Excel file here</div>
+      <div>📁 Click or drag &amp; drop your Excel file here</div>
       <div style="font-size:0.75rem;margin-top:6px;">.xlsx · .xls · .csv</div>
     </div>
     <div id="importPreview" style="margin-top:14px;font-size:0.82rem;"></div>
@@ -682,15 +1004,79 @@
     <h2>Reshape Stage</h2>
     <div class="form-row">
       <label>Rows</label>
-      <input type="number" id="reshapeRowCount" placeholder="5">
+      <input type="number" id="reshapeRowCount" placeholder="" value="5">
     </div>
     <div class="form-row">
       <label>Total singer count</label>
-      <input type="number" id="reshapeSingerCount" placeholder="50">
-
+      <input type="number" id="reshapeSingerCount" placeholder="" value="50">
+    </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('reshapeStageModal')">Cancel</button>
-      <button class="btn-primary" style="background:var(--accent);color:#fff;" onclick="reshapeStage()">Add</button>
+      <button class="btn-primary" style="background:var(--accent);color:#fff;" onclick="reshapeStage()">Reshape</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Memory (Save/Load) -->
+<div class="modal-overlay hidden" id="memoryModal">
+  <div class="modal">
+    <h2>💾 Save / Load Configuration</h2>
+    <p class="config-info">Export saves your full configuration — singers, stage layout, and settings — as a JSON file. Import restores from a previously exported file.</p>
+    <div class="config-options">
+      <div class="config-option" onclick="exportConfig()">
+        <span class="config-option-icon">📤</span>
+        <div class="config-option-text">
+          <strong>Export Configuration</strong>
+          <span>Download a .json file with all singers &amp; stage layout</span>
+        </div>
+      </div>
+      <div class="config-option" onclick="document.getElementById('configFileInput').click()">
+        <span class="config-option-icon">📥</span>
+        <div class="config-option-text">
+          <strong>Import Configuration</strong>
+          <span>Restore from a previously saved .json file</span>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="configFileInput" accept=".json" style="display:none" onchange="importConfig(event)">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('memoryModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: About -->
+<div class="modal-overlay hidden about-modal" id="aboutModal">
+  <div class="modal">
+    <div class="about-header">
+      <h2>🎵 Chorus Seating Chart</h2>
+      <p>Created for my wonderful first choir, the Cleveland Orchestra Youth Chorus :)</p>
+    </div>
+
+    <div class="about-section">
+      <h3>How to Use</h3>
+      <ul>
+        <li>Add singers via <em>+ Add Singer</em> or import from Excel</li>
+        <li>Drag singers from the pool onto stage slots</li>
+        <li>Click an empty slot to search &amp; place a singer, insert cells/rows, or mark it as an obstacle</li>
+        <li>Use the pool search bar and part filters to quickly find singers</li>
+        <li>Save your layout with <em>Save / Load</em> and restore it later</li>
+        <li>Print or export to PDF with the <em>Print / PDF</em> button</li>
+      </ul>
+    </div>
+
+    <hr class="about-divider">
+
+
+    <hr class="about-divider">
+
+    <div class="about-section" style="text-align:center;color:var(--muted);font-size:0.8rem;">
+      Contact me!
+      kingstenlin [at] gmail [dot] com
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('aboutModal')">Close</button>
     </div>
   </div>
 </div>
@@ -699,21 +1085,22 @@
 <div class="toast hidden" id="toast"></div>
 
 <script>
-//TODO: save configurations (export singers, probably)
-//TODO: overhaul menu system to be a two click thing?
-//TODO: clicking empty stage tile should open a search feature to add someone
-//SUPERTODO: number the cards
-//SUPERTODO: make pool filterable!!
 // ─────────────────────────────────────────────────────────────
-//  State 
+//  State
 // ─────────────────────────────────────────────────────────────
 let singers = [];     // { id, name, part, height, rowIdx }
 let rows = [];        // [{ id, slots: [singerId|null, ...], stagger: bool }]
 let showHeights = false;
 let draggedSingerId = null;
-let dragSource = null; // 'pool' | { rowId, slotIdx }
+let dragSource = null;
 let pendingImport = [];
 let nextId = 1;
+let activePartFilters = new Set(); // empty = show all
+
+// Slot context menu state
+let slotMenuEl = null;
+let slotMenuRowId = null;
+let slotMenuSlotIdx = null;
 
 const PARTS = {
   S1: { label: 'Soprano 1', color: '#e07b54', light: '#fef0ea', arrow: '↑' },
@@ -731,7 +1118,7 @@ const SECTION_ORDER = ['S1','S2','A1','A2','T1','T2','B1','B2'];
 // ─────────────────────────────────────────────────────────────
 //  Utility
 // ─────────────────────────────────────────────────────────────
-function uid() { return 'id_' + (nextId++); }
+function uid() { return 'id_' + (nextId++) + '_' + Math.random().toString(36).slice(2,6); }
 function getSinger(id) { return singers.find(s => s.id === id); }
 function poolSingers() {
   const placed = new Set(rows.flatMap(r => r.slots).filter(Boolean));
@@ -750,54 +1137,89 @@ function showToast(msg) {
 //  Render
 // ─────────────────────────────────────────────────────────────
 function render() {
+  renderFilterChips();
   renderPool();
   renderStage();
   renderLegend();
 }
 
+function renderFilterChips() {
+  const container = document.getElementById('filterChips');
+  container.innerHTML = '';
+
+  // "All" chip
+  const allChip = document.createElement('button');
+  allChip.className = 'filter-chip-all' + (activePartFilters.size === 0 ? ' active' : '');
+  allChip.textContent = 'All';
+  allChip.onclick = () => { activePartFilters.clear(); render(); };
+  container.appendChild(allChip);
+
+  SECTION_ORDER.forEach(part => {
+    if (!singers.find(s => s.part === part)) return;
+    const p = PARTS[part];
+    const chip = document.createElement('button');
+    chip.className = 'filter-chip' + (activePartFilters.has(part) ? ' active' : '');
+    chip.textContent = part;
+    chip.style.color = p.color;
+    chip.style.background = p.light;
+    chip.onclick = () => {
+      if (activePartFilters.has(part)) activePartFilters.delete(part);
+      else activePartFilters.add(part);
+      if (activePartFilters.size === 0) { /* all */ }
+      render();
+    };
+    container.appendChild(chip);
+  });
+}
+
 function renderPool() {
-    //TODO: add search bar, filter
   const pool = document.getElementById('singerPool');
   pool.innerHTML = '';
-  const ps = poolSingers();
-  if (ps.length === 0) {
-    pool.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;text-align:center;padding:12px;">All singers placed</div>';
-    return;
-  }
-  SECTION_ORDER.forEach(part => {
-    const group = ps.filter(s => s.part === part);
-    if (!group.length) return;
-    const lbl = document.createElement('div');
-    lbl.className = 'section-label';
-    lbl.textContent = PARTS[part].label;
-    pool.appendChild(lbl);
-    const row = document.createElement('div');
-    row.className = 'pool-section-group';
-    group.forEach(s => {
-      row.appendChild(makeSingerCard(s, 'pool'));
-    });
-    pool.appendChild(row);
-  });
 
- 
+  const searchQ = (document.getElementById('poolSearch')?.value || '').trim().toLowerCase();
+  let ps = poolSingers();
+
+  // apply part filter
+  if (activePartFilters.size > 0) {
+    ps = ps.filter(s => activePartFilters.has(s.part));
+  }
+  // apply search
+  if (searchQ) {
+    ps = ps.filter(s => s.name.toLowerCase().includes(searchQ));
+  }
+
+  if (ps.length === 0) {
+    pool.innerHTML = '<div style="color:var(--muted);font-size:0.8rem;text-align:center;padding:12px;">' +
+      (searchQ || activePartFilters.size ? 'No matches' : 'All singers placed') + '</div>';
+  } else {
+    SECTION_ORDER.forEach(part => {
+      const group = ps.filter(s => s.part === part);
+      if (!group.length) return;
+      const lbl = document.createElement('div');
+      lbl.className = 'section-label';
+      lbl.textContent = PARTS[part].label;
+      pool.appendChild(lbl);
+      const row = document.createElement('div');
+      row.className = 'pool-section-group';
+      group.forEach(s => row.appendChild(makeSingerCard(s, 'pool')));
+      pool.appendChild(row);
+    });
+  }
+
   pool.addEventListener('dragover', e => { e.preventDefault(); pool.classList.add('drag-over'); });
   pool.addEventListener('dragleave', () => pool.classList.remove('drag-over'));
   pool.addEventListener('drop', e => {
     e.preventDefault();
     pool.classList.remove('drag-over');
-
     if (!draggedSingerId) return;
     if (dragSource && typeof dragSource === 'object') {
       const srcRow = rows.find(r => r.id === dragSource.rowId);
       if (srcRow) srcRow.slots[dragSource.slotIdx] = null;
     }
-
     const tarSinger = singers.find(s => s.id === draggedSingerId);
-    tarSinger.singerRow = null;
-
+    if (tarSinger) tarSinger.singerRow = null;
     render();
-    showToast(`${getSinger(draggedSingerId)?.name} removed from chart`);
-    
+    showToast(`${getSinger(draggedSingerId)?.name || ''} removed from chart`);
   });
 }
 
@@ -815,15 +1237,13 @@ function makeSingerCard(singer, source) {
     <div class="singer-arrow">${p.arrow}</div>
     <div class="singer-name">${singer.name}</div>
     <div class="singer-part">${singer.singerRow ? singer.singerRow : ""}</div>
-    ${singer.height ? `<div class="singer-height no-print">${singer.height}</div>` : ''}
+    ${singer.height ? `<div class="singer-height">${singer.height}</div>` : ''}
     <div class="card-delete" title="Remove singer" onclick="returnSinger(event,'${singer.id}')">✕</div>
   `;
 
-  // hide height if toggle off
   const hEl = card.querySelector('.singer-height');
   if (hEl) hEl.style.display = showHeights ? '' : 'none';
 
-  // drag events
   card.addEventListener('dragstart', e => {
     draggedSingerId = singer.id;
     dragSource = source;
@@ -835,28 +1255,30 @@ function makeSingerCard(singer, source) {
     draggedSingerId = null;
     dragSource = null;
   });
-
   return card;
 }
 
-
 function renderStage() {
-    
   const stage = document.getElementById('stage');
-  // keep front label
   const frontLabel = stage.querySelector('.stage-front-label');
   stage.innerHTML = '';
   stage.appendChild(frontLabel);
-
   rows.forEach((row, rowIdx) => {
+
+    // Insert-row zone ABOVE this row (between rows)
+    const insertZone = document.createElement('div');
+    insertZone.className = 'insert-row-zone';
+    insertZone.innerHTML = `
+      <div class="insert-row-btns">
+        <button class="insert-row-btn" onclick="insertRow(${rowIdx}, false)">+ Row above</button>
+        <button class="insert-row-btn" onclick="insertRow(${rowIdx}, true)">+ Staggered above</button>
+      </div>`;
+    stage.prepend(insertZone);
+
     const rowEl = document.createElement('div');
-    rowEl.className = 'riser-row';
+    rowEl.className = 'riser-row' + (row.stagger ? ' staggered' : '');
     rowEl.dataset.rowId = row.id;
 
-    if (row.stagger) {
-      rowEl.classList.add('staggered');
-    }
-    // Row controls
     const ctrl = document.createElement('div');
     ctrl.className = 'riser-controls';
     ctrl.innerHTML = `
@@ -877,7 +1299,15 @@ function renderStage() {
       const slot = document.createElement('div');
       slot.className = 'slot';
 
-      // drop events
+      if (singerId === '__OBSTACLE__') {
+        slot.classList.add('obstacle');
+        slot.title = 'Obstacle / forced empty';
+        // allow right-click or click to remove obstacle
+        slot.addEventListener('click', () => openSlotMenu(slot, row.id, slotIdx, true));
+        slotsEl.appendChild(slot);
+        return;
+      }
+
       slot.addEventListener('dragover', e => { e.preventDefault(); slot.classList.add('drag-over'); });
       slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
       slot.addEventListener('drop', e => {
@@ -886,7 +1316,6 @@ function renderStage() {
         handleDrop(row.id, slotIdx, singerId);
       });
 
-      // slot delete (empty slots)
       const slotDel = document.createElement('div');
       slotDel.className = 'slot-delete';
       slotDel.textContent = '✕';
@@ -901,24 +1330,22 @@ function renderStage() {
           card.style.width = '88px';
           card.style.height = '70px';
           slot.appendChild(card);
-          slotDel.style.display = 'none'; // hide slot X when occupied
+          slotDel.style.display = 'none';
           slot.style.border = 'none';
           slot.style.background = 'transparent';
         }
       } else {
-        // empty slot placeholder text
-        const ph = document.createElement('span');
-        ph.style.cssText = 'font-size:0.65rem;color:var(--muted);text-align:center;pointer-events:none;';
-        ph.textContent = '';
-        slot.appendChild(ph);
+        // Empty slot: click opens context menu
+        slot.style.cursor = 'pointer';
+        slot.addEventListener('click', (e) => {
+          if (e.target === slotDel || slotDel.contains(e.target)) return;
+          openSlotMenu(slot, row.id, slotIdx, false);
+        });
       }
 
       slotsEl.appendChild(slot);
     });
 
-    
-
-    // Add slot button
     const addSlot = document.createElement('button');
     addSlot.className = 'add-slot-btn';
     addSlot.title = 'Add slot';
@@ -929,6 +1356,18 @@ function renderStage() {
     rowEl.appendChild(slotsEl);
     stage.prepend(rowEl);
   });
+
+  const insertBottom = document.createElement('div');
+  insertBottom.className = 'insert-row-zone';
+  insertBottom.innerHTML = `
+    <div class="insert-row-btns">
+      <button class="insert-row-btn" onclick="insertRow(-1, false)">+ Row at front</button>
+      <button class="insert-row-btn" onclick="insertRow(-1, true)">+ Staggered at front</button>
+    </div>`;
+  //stage.appendChild(insertBottom);
+  stage.insertBefore(insertBottom, stage.children[stage.children.length - 1])
+
+  
 
   // Add row button
   const addRowBtn = document.createElement('button');
@@ -952,20 +1391,165 @@ function renderLegend() {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  Slot Context Menu
+// ─────────────────────────────────────────────────────────────
+function openSlotMenu(slotEl, rowId, slotIdx, isObstacle) {
+  closeSlotMenu();
+
+  slotMenuRowId = rowId;
+  slotMenuSlotIdx = slotIdx;
+
+  const menu = document.createElement('div');
+  menu.className = 'slot-menu';
+  menu.id = 'slotMenu';
+  slotMenuEl = menu;
+
+  if (isObstacle) {
+    menu.innerHTML = `
+      <div class="slot-menu-title">Obstacle Slot</div>
+      <div class="slot-menu-actions">
+        <button class="slot-menu-action obstacle-action" onclick="clearObstacle('${rowId}',${slotIdx})">Remove obstacle</button>
+        <button class="slot-menu-action danger" onclick="removeSlot('${rowId}',${slotIdx});closeSlotMenu()">Delete slot</button>
+      </div>`;
+  } else {
+    const pool = poolSingers();
+    menu.innerHTML = `
+      <div class="slot-menu-search">
+        <input type="text" id="slotSearchInput" placeholder="Search singer…" autocomplete="off">
+      </div>
+      <div class="slot-menu-title">Pool</div>
+      <div class="slot-menu-results" id="slotMenuResults"></div>
+      <div class="slot-menu-actions">
+        <button class="slot-menu-action" onclick="insertSlot('${rowId}',${slotIdx},'left')">← Insert left</button>
+        <button class="slot-menu-action" onclick="insertSlot('${rowId}',${slotIdx},'right')">Insert right →</button>
+        <button class="slot-menu-action obstacle-action" style="min-width:100%;flex-basis:100%;" onclick="markObstacle('${rowId}',${slotIdx})">🚫 Mark as obstacle</button>
+        <button class="slot-menu-action danger" style="min-width:100%;flex-basis:100%;" onclick="removeSlot('${rowId}',${slotIdx});closeSlotMenu()">✕ Delete slot</button>
+      </div>`;
+  }
+
+  document.body.appendChild(menu);
+
+  // Position near slot
+  const rect = slotEl.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  let left = rect.left;
+  if (top + 340 > window.innerHeight) top = rect.top - 340;
+  if (left + 244 > window.innerWidth) left = window.innerWidth - 250;
+  menu.style.top = top + 'px';
+  menu.style.left = left + 'px';
+
+  if (!isObstacle) {
+    renderSlotMenuResults('');
+    const inp = document.getElementById('slotSearchInput');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('input', () => renderSlotMenuResults(inp.value));
+    }
+  }
+}
+
+function renderSlotMenuResults(query) {
+  const container = document.getElementById('slotMenuResults');
+  if (!container) return;
+  const q = query.trim().toLowerCase();
+  let ps = poolSingers();
+  if (q) ps = ps.filter(s => s.name.toLowerCase().includes(q));
+
+  container.innerHTML = '';
+  if (ps.length === 0) {
+    container.innerHTML = `<div class="slot-menu-empty">${q ? 'No matches' : 'Pool is empty'}</div>`;
+    return;
+  }
+  ps.slice(0, 12).forEach(s => {
+    const p = PARTS[s.part];
+    const item = document.createElement('div');
+    item.className = 'slot-menu-result';
+    item.innerHTML = `
+      <div class="slot-menu-result-dot" style="background:${p.color}"></div>
+      <span>${s.name}</span>
+      <span class="slot-menu-result-part">${s.part}</span>`;
+    item.onclick = () => {
+      placeSingerInSlot(slotMenuRowId, slotMenuSlotIdx, s.id);
+      closeSlotMenu();
+    };
+    container.appendChild(item);
+  });
+  if (ps.length > 12) {
+    const more = document.createElement('div');
+    more.className = 'slot-menu-empty';
+    more.textContent = `…${ps.length - 12} more — refine search`;
+    container.appendChild(more);
+  }
+}
+
+function closeSlotMenu() {
+  if (slotMenuEl) { slotMenuEl.remove(); slotMenuEl = null; }
+  slotMenuRowId = null;
+  slotMenuSlotIdx = null;
+}
+
+function placeSingerInSlot(rowId, slotIdx, singerId) {
+  const row = rows.find(r => r.id === rowId);
+  if (!row) return;
+  row.slots[slotIdx] = singerId;
+  const s = getSinger(singerId);
+  if (s) s.singerRow = slotIdx + 1;
+  render();
+  showToast(`${getSinger(singerId)?.name} placed`);
+}
+
+function markObstacle(rowId, slotIdx) {
+  const row = rows.find(r => r.id === rowId);
+  if (row) row.slots[slotIdx] = '__OBSTACLE__';
+  closeSlotMenu();
+  render();
+}
+
+function clearObstacle(rowId, slotIdx) {
+  const row = rows.find(r => r.id === rowId);
+  if (row) row.slots[slotIdx] = null;
+  closeSlotMenu();
+  render();
+}
+
+function insertSlot(rowId, slotIdx, side) {
+  const row = rows.find(r => r.id === rowId);
+  if (!row) { closeSlotMenu(); return; }
+  const insertAt = side === 'right' ? slotIdx + 1 : slotIdx;
+  row.slots.splice(insertAt, 0, null);
+  closeSlotMenu();
+  render();
+  showToast(`Slot inserted`);
+}
+
+
+
+// Close menu on outside click
+document.addEventListener('mousedown', (e) => {
+  if (slotMenuEl && !slotMenuEl.contains(e.target)) closeSlotMenu();
+}, true);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSlotMenu();
+});
+
+// ─────────────────────────────────────────────────────────────
 //  Actions
 // ─────────────────────────────────────────────────────────────
-
-
-
 function addRow(num = 5, stag = false) {
   rows.push({ id: uid(), slots: Array(num).fill(null), stagger: stag });
   render();
 }
 
+function insertRow(atIdx, stagger = false) {
+  const refRow = (atIdx === -1) ? rows[0] : rows[atIdx]
+  const newRow = { id: uid(), slots: Array(refRow.slots.length).fill(null), stagger };
+  rows.splice(atIdx + 1, 0, newRow);
+  render();
+  showToast('Row inserted');
+}
+
 function removeRow(rowId) {
-  const row = rows.find(r => r.id === rowId);
-  if (!row) return;
-  // singers go back to pool automatically (not placed)
   rows = rows.filter(r => r.id !== rowId);
   render();
 }
@@ -991,18 +1575,13 @@ function handleDrop(targetRowId, targetSlotIdx, currentOccupant) {
   if (!draggedSingerId) return;
   const targetRow = rows.find(r => r.id === targetRowId);
   if (!targetRow) return;
-
-  // If dragged from a stage slot, clear it first
   if (dragSource && typeof dragSource === 'object') {
     const srcRow = rows.find(r => r.id === dragSource.rowId);
     if (srcRow) srcRow.slots[dragSource.slotIdx] = null;
   }
-
-  // If target already has someone, send them back (swap to pool)
-  // just clear the old slot — they'll appear in pool
   targetRow.slots[targetSlotIdx] = draggedSingerId;
   const tarSinger = singers.find(s => s.id === draggedSingerId);
-  tarSinger.singerRow = targetSlotIdx + 1;
+  if (tarSinger) tarSinger.singerRow = targetSlotIdx + 1;
   render();
   showToast(`${getSinger(draggedSingerId)?.name} placed`);
 }
@@ -1010,24 +1589,14 @@ function handleDrop(targetRowId, targetSlotIdx, currentOccupant) {
 function returnSinger(e, singerId) {
   e.stopPropagation();
   e.preventDefault();
-
-  let stageBool = false //see if this singer is on stage
-  rows.forEach(row => { 
-    row.slots.forEach(id => {
-      if (id === singerId) {
-        stageBool = true;
-      } 
-    });
-
-  });
-  if (stageBool) {
-    rows.forEach(row => { //if on stage, put in pool
-      row.slots = row.slots.map(id => id === singerId ? null : id);
-    });
-  } else singers = singers.filter(s => s.id !== singerId); //else remove entirely
+  let onStage = rows.some(row => row.slots.includes(singerId));
+  if (onStage) {
+    rows.forEach(row => { row.slots = row.slots.map(id => id === singerId ? null : id); });
+  } else {
+    singers = singers.filter(s => s.id !== singerId);
+  }
   render();
 }
-
 
 function clearPool() {
   const ps = poolSingers();
@@ -1036,29 +1605,29 @@ function clearPool() {
 }
 
 function clearStage() {
-  rows.forEach(row => { row.slots = row.slots.map(() => null); });
+  rows.forEach(row => { row.slots = row.slots.map(s => s === '__OBSTACLE__' ? '__OBSTACLE__' : null); });
   render();
   showToast('Stage cleared');
 }
 
-// reshape stage modal
-
+// ─────────────────────────────────────────────────────────────
+//  Reshape Stage
+// ─────────────────────────────────────────────────────────────
 function openReshapeStage() {
   document.getElementById('reshapeRowCount').value = 5;
   document.getElementById('reshapeSingerCount').value = 50;
   document.getElementById('reshapeStageModal').classList.remove('hidden');
-
 }
 
 function reshapeStage() {
   clearStage();
-  rows = rows.filter(r => r.id == -123)
+  rows = []
   const rowct = document.getElementById('reshapeRowCount').value;
   const sct = document.getElementById('reshapeSingerCount').value;
   
   const colct = Math.ceil(sct / rowct);
   for (let i = 0; i < rowct; i++) {
-    addRow(colct, i % 2 == 0 ? false : true);
+    addRow(colct, i % 2 !== 0);
   }
 
   closeModal('reshapeStageModal');
@@ -1088,7 +1657,7 @@ function addSingerFromForm() {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Import Modal
+//  Import Modal (Excel)
 // ─────────────────────────────────────────────────────────────
 function openImport() {
   pendingImport = [];
@@ -1135,11 +1704,10 @@ function processFile(file) {
       const workbook = XLSX.read(data, { type: 'array' });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows2 = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-
       pendingImport = [];
       let skipped = 0;
       rows2.forEach((row, i) => {
-        if (i === 0 && typeof row[0] === 'string' && row[0].toLowerCase().includes('name')) return; // header
+        if (i === 0 && typeof row[0] === 'string' && row[0].toLowerCase().includes('name')) return;
         const name = String(row[0] || '').trim();
         const partRaw = row[1];
         const height = String(row[2] || '').trim();
@@ -1162,7 +1730,7 @@ function processFile(file) {
         document.getElementById('importConfirmBtn').disabled = false;
       }
     } catch(err) {
-      document.getElementById('importPreview').innerHTML = '<span style="color:#c0392b;">Error reading file. Please use .xlsx, .xls, or .csv.</span>';
+      document.getElementById('importPreview').innerHTML = '<span style="color:#c0392b;">Error reading file.</span>';
     }
   };
   reader.readAsArrayBuffer(file);
@@ -1177,6 +1745,68 @@ function confirmImport() {
   showToast(`Imported ${pendingImport.length} singers`);
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Memory: Export / Import Config
+// ─────────────────────────────────────────────────────────────
+function openMemoryModal() {
+  document.getElementById('memoryModal').classList.remove('hidden');
+}
+
+function exportConfig() {
+  const config = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    singers: singers,
+    rows: rows,
+    nextId: nextId,
+    showHeights: showHeights,
+  };
+  const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'seating-chart-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Configuration exported!');
+  closeModal('memoryModal');
+}
+
+function importConfig(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const config = JSON.parse(ev.target.result);
+      if (!config.singers || !config.rows) throw new Error('Invalid config');
+      singers = config.singers;
+      rows = config.rows;
+      nextId = config.nextId || (nextId + 1000);
+      showHeights = config.showHeights || false;
+      document.getElementById('toggleHeights').checked = showHeights;
+      closeModal('memoryModal');
+      render();
+      showToast('Configuration loaded!');
+    } catch(err) {
+      showToast('Error: invalid config file');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ─────────────────────────────────────────────────────────────
+//  About Modal
+// ─────────────────────────────────────────────────────────────
+function openAbout() {
+  document.getElementById('aboutModal').classList.remove('hidden');
+}
+
+
+// ─────────────────────────────────────────────────────────────
+//  Close Modal
+// ─────────────────────────────────────────────────────────────
 function closeModal(id) {
   document.getElementById(id).classList.add('hidden');
 }
@@ -1192,7 +1822,7 @@ document.getElementById('toggleHeights').addEventListener('change', function() {
 });
 
 // ─────────────────────────────────────────────────────────────
-//  Keyboard
+//  Keyboard shortcuts
 // ─────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !document.getElementById('addSingerModal').classList.contains('hidden')) {
@@ -1201,33 +1831,29 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeModal('addSingerModal');
     closeModal('importModal');
+    closeModal('memoryModal');
+    closeModal('aboutModal');
+    closeSlotMenu();
   }
 });
 
 // ─────────────────────────────────────────────────────────────
-//  Export PDF — clones stage into a sized print window
+//  Export PDF
 // ─────────────────────────────────────────────────────────────
 async function exportPDF() {
   showToast('Generating PDF…');
-
-  // Collect all inline styles from the current document
   const styleText = Array.from(document.styleSheets)
     .map(ss => {
       try { return Array.from(ss.cssRules).map(r => r.cssText).join('\n'); }
       catch(e) { return ''; }
     }).join('\n');
 
-  // Clone the stage element
   const stageEl = document.getElementById('stage');
   const clone = stageEl.cloneNode(true);
-
-  // Remove UI-only elements from clone
   clone.querySelectorAll(
-    '.add-row-btn, .add-slot-btn, .riser-controls, .card-delete, .slot-delete, .singer-height'
+    '.add-row-btn, .add-slot-btn, .riser-controls, .card-delete, .slot-delete, .singer-height, .insert-row-zone'
   ).forEach(el => el.remove());
 
-  // Measure true unconstrained stage dimensions by temporarily removing
-  // the scroll container's clipping so scrollWidth/Height are accurate
   const scrollEl = document.querySelector('.stage-scroll');
   const prevOverflow = scrollEl.style.overflow;
   scrollEl.style.overflow = 'visible';
@@ -1235,69 +1861,36 @@ async function exportPDF() {
   const fullH = stageEl.scrollHeight;
   scrollEl.style.overflow = prevOverflow;
 
-  const margin = 60; // px — generous enough that cell borders are never clipped
+  const margin = 60;
   const winW = fullW + margin * 2;
   const winH = fullH + margin * 2;
 
-  const printWin = window.open('', '_blank',
-    `width=${winW},height=${winH},scrollbars=no,toolbar=no,menubar=no`);
-
-  if (!printWin) {
-    showToast('Pop-up blocked — allow pop-ups and try again');
-    return;
-  }
+  const printWin = window.open('', '_blank', `width=${winW},height=${winH},scrollbars=no,toolbar=no,menubar=no`);
+  if (!printWin) { showToast('Pop-up blocked — allow pop-ups and try again'); return; }
 
   printWin.document.write(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Chorus Seating Chart</title>
+<html><head><meta charset="UTF-8"><title>Chorus Seating Chart</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@300;400;600&display=swap');
   ${styleText}
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html {
-    background: #f7f4ef;
-  }
-  body {
-    /* Explicit margin on all four sides — no 'auto' which collapses the right margin */
-    margin: ${margin}px;
-    background: #f7f4ef;
-  }
-  /* Force stage to its natural full size — no scroll containers */
-  #stage, .stage {
-    width: max-content !important;
-    min-width: unset !important;
-    overflow: visible !important;
-    flex-shrink: 0;
-  }
+  html { background: #f7f4ef; }
+  body { margin: ${margin}px; background: #f7f4ef; }
+  #stage, .stage { width: max-content !important; min-width: unset !important; overflow: visible !important; flex-shrink: 0; }
   .stage-scroll-inner { min-width: unset !important; margin: 0 !important; }
   .riser-row.staggered { margin-left: 49px; }
-  /* Suppress any interactive chrome */
-  .add-row-btn, .add-slot-btn, .riser-controls,
-  .card-delete, .slot-delete, .singer-height { display: none !important; }
-  @page {
-    size: ${winW}px ${winH}px;
-    margin: 0;
-  }
-</style>
-</head>
-<body>
-  ${clone.outerHTML}
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); window.close(); }, 500);
-    };
-  <\/script>
-</body>
-</html>`);
-
+  .add-row-btn, .add-slot-btn, .riser-controls, .card-delete, .slot-delete, .singer-height, .insert-row-zone { display: none !important; }
+  @page { size: ${winW}px ${winH}px; margin: 0; }
+</style></head><body>
+${clone.outerHTML}
+<script>window.onload=function(){setTimeout(function(){window.print();window.close();},500);};<\/script>
+</body></html>`);
   printWin.document.close();
   showToast('Print dialog opened');
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Init: seed a couple of default rows
+//  Init
 // ─────────────────────────────────────────────────────────────
 function init() {
   rows = [
