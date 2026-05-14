@@ -939,7 +939,7 @@
 
 <!-- Bottom Panel -->
 <div class="bottom-panel">
-  <span class="bottom-panel-tagline" id="bottomTagline">Chorus Seating Chart Maker</span>
+  <span class="bottom-panel-tagline" id="bottomTagline">Created by Kingsten Lin for COYC</span>
   <div class="bottom-panel-actions">
     <button class="bottom-btn" onclick="openAbout()">ℹ About</button>
     <button class="bottom-btn" onclick="openMemoryModal()">💾 Save / Load</button>
@@ -1049,7 +1049,7 @@
 <div class="modal-overlay hidden about-modal" id="aboutModal">
   <div class="modal">
     <div class="about-header">
-      <h2>🎵 Chorus Seating Chart</h2>
+      <h2>Seating Chart Maker</h2>
       <p>Created for my wonderful first choir, the Cleveland Orchestra Youth Chorus :)</p>
     </div>
 
@@ -1064,9 +1064,6 @@
         <li>Print or export to PDF with the <em>Print / PDF</em> button</li>
       </ul>
     </div>
-
-    <hr class="about-divider">
-
 
     <hr class="about-divider">
 
@@ -1369,12 +1366,6 @@ function renderStage() {
 
   
 
-  // Add row button
-  const addRowBtn = document.createElement('button');
-  addRowBtn.className = 'add-row-btn';
-  addRowBtn.innerHTML = '+ Add Row';
-  addRowBtn.onclick = addRow;
-  stage.prepend(addRowBtn);
 }
 
 function renderLegend() {
