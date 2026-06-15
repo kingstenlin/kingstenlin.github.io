@@ -2003,6 +2003,20 @@ ${clone.outerHTML}
 </body></html>`);
   printWin.document.close();
   showToast('Print dialog opened');
+
+
+  // also save to local storage
+  const config = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    singers: singers,
+    rows: rows,
+    nextId: nextId,
+    showHeights: showHeights,
+  };
+  
+  // Use a namespaced key for GitHub Pages
+  localStorage.setItem('choir_seating_chart_state', JSON.stringify(config));
 }
 
 // ─────────────────────────────────────────────────────────────
