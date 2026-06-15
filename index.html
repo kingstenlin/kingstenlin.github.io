@@ -1591,6 +1591,22 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeSlotMenu();
 });
 
+// override command p to print
+document.addEventListener('keydown', e => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'p') {
+    // 1. Prevent the browser's default print dialog from opening
+    event.preventDefault();
+    
+    // 2. Call your custom async function
+    exportPDF()
+      .then(() => {
+      })
+      .catch((error) => {
+        console.error('Failed to export PDF:', error);
+      });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────
 //  Actions
 // ─────────────────────────────────────────────────────────────
