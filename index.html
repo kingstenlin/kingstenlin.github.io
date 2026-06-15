@@ -1806,6 +1806,7 @@ function importConfig(e) {
       if (!config.singers || !config.rows) throw new Error('Invalid config');
       singers = config.singers;
       rows = config.rows;
+      rows.forEach(row => { row.stagger = false; });
       nextId = config.nextId || (nextId + 1000);
       showHeights = config.showHeights || false;
       document.getElementById('toggleHeights').checked = showHeights;
