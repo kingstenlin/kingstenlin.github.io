@@ -1607,6 +1607,49 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// implement local storage
+document.addEventListener('beforeunload', () => {
+  // Grab your current state object
+  const config = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    singers: singers,
+    rows: rows,
+    nextId: nextId,
+    showHeights: showHeights,
+  };
+  
+  // Use a namespaced key for GitHub Pages
+  localStorage.setItem('choir_seating_chart_state', JSON.stringify(config));
+});
+
+function loadFromLocalStorage() {
+  const savedData = localStorage.getItem('choir_seating_chart_state');
+  
+  if (!savedData) return; // Nothing saved yet, load a blank slate
+
+  try {
+    const config = JSON.parse(savedData);
+    
+    // Apply the saved state back to your global variables
+    singers = config.singers;
+    rows = config.rows;
+    nextId = config.nextId;
+    showHeights = config.showHeights;
+    
+    // Call whatever function you use to draw/render the UI
+    renderSeatingChart(); 
+    
+    showToast('Restored your previous session!');
+  } catch (error) {
+    console.error("Failed to parse local storage data", error);
+    showToast('Error loading saved session.');
+  }
+}
+
+// Call this automatically when the script loads
+document.addEventListener('DOMContentLoaded', loadFromLocalStorage);
+
 // ─────────────────────────────────────────────────────────────
 //  Actions
 // ─────────────────────────────────────────────────────────────
