@@ -10,13 +10,15 @@ A lightweight webapp for creating choral seating charts.
 
 This site serves as a simple tool for the production of seating charts, particularly designed with choirs in mind.
 - Drag and drop functionality
-- Grey out tiles to show gaps
+- Click empty tile -> Grey out tiles to show gaps
+- Click empty tile -> Mark tiles invisible for formatting
+- Search for particular names (also available in tile click menu)
+- Filter for parts (also available in tile click menu)
 - Automatic chair numbering
 - Optional height display
 - Import rosters from a spreadsheet
 - Save configurations to be used later
-- Search for particular names
-- Filter for parts
+- Automatic local storage upon printing and restoration of saved state
 - Automatic PDF formatting for oversized configurations
 
 The repository is structured to directly support deployment via GitHub Pages.
@@ -53,6 +55,6 @@ Pushing to the main branch updates the live site automatically via GitHub Pages.
 
 ## Future Work
 
-- Implement local storage / possibly backend
+- Possibly implement backend?
 - Improve UI / UX  
 - Non-rectangular configurations?
