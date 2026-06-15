@@ -1631,14 +1631,12 @@ function loadFromLocalStorage() {
   try {
     const config = JSON.parse(savedData);
     
-    // Apply the saved state back to your global variables
     singers = config.singers;
     rows = config.rows;
     nextId = config.nextId;
     showHeights = config.showHeights;
     
-    // Call whatever function you use to draw/render the UI
-    renderSeatingChart(); 
+    render(); 
     
     showToast('Restored your previous session!');
   } catch (error) {
