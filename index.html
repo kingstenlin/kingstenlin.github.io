@@ -341,7 +341,7 @@
     width: max-content;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: 0;
   }
 
@@ -462,6 +462,12 @@
   .slot.drag-over {
     border-color: var(--accent);
     background: rgba(92,61,46,0.06);
+  }
+
+  .slot.invisible {
+    background: #f7f4ef !important;
+    border: 1px !important;
+    cursor: default;
   }
 
   /* Greyed-out / obstacle slot */
@@ -1265,7 +1271,6 @@ function renderStage() {
     insertZone.innerHTML = `
       <div class="insert-row-btns">
         <button class="insert-row-btn" onclick="insertRow(${rowIdx}, false)">+ Row above</button>
-        <button class="insert-row-btn" onclick="insertRow(${rowIdx}, true)">+ Staggered above</button>
       </div>`;
     stage.prepend(insertZone);
 
@@ -1277,7 +1282,6 @@ function renderStage() {
     ctrl.className = 'riser-controls';
     ctrl.innerHTML = `
       <button class="riser-btn" title="Delete row" onclick="removeRow('${row.id}')">✕</button>
-      <button class="riser-btn" title="${row.stagger ? 'Remove stagger' : 'Toggle stagger'}" onclick="toggleStagger('${row.id}')">${row.stagger ? '⇥' : '⇤'}</button>
     `;
     rowEl.appendChild(ctrl);
 
@@ -1297,7 +1301,16 @@ function renderStage() {
         slot.classList.add('obstacle');
         slot.title = 'Obstacle / forced empty';
         // allow right-click or click to remove obstacle
-        slot.addEventListener('click', () => openSlotMenu(slot, row.id, slotIdx, true));
+        slot.addEventListener('click', () => openSlotMenu(slot, row.id, slotIdx, 1));
+        slotsEl.appendChild(slot);
+        return;
+      }
+
+      if (singerId === '__INVISIBLE__') {
+        slot.classList.add('invisible');
+        slot.title = 'Invisible tile for staggering';
+        // allow right-click or click to remove invis
+        slot.addEventListener('click', () => openSlotMenu(slot, row.id, slotIdx, 2));
         slotsEl.appendChild(slot);
         return;
       }
@@ -1356,7 +1369,6 @@ function renderStage() {
   insertBottom.innerHTML = `
     <div class="insert-row-btns">
       <button class="insert-row-btn" onclick="insertRow(-1, false)">+ Row at front</button>
-      <button class="insert-row-btn" onclick="insertRow(-1, true)">+ Staggered at front</button>
     </div>`;
   //stage.appendChild(insertBottom);
   stage.insertBefore(insertBottom, stage.children[stage.children.length - 1])
@@ -1382,6 +1394,7 @@ function renderLegend() {
 //  Slot Context Menu
 // ─────────────────────────────────────────────────────────────
 function openSlotMenu(slotEl, rowId, slotIdx, isObstacle) {
+  // isObstacle = 0 is regular cell, 1 is obstacle, 2 is invisible
   closeSlotMenu();
 
   slotMenuRowId = rowId;
@@ -1392,14 +1405,22 @@ function openSlotMenu(slotEl, rowId, slotIdx, isObstacle) {
   menu.id = 'slotMenu';
   slotMenuEl = menu;
 
-  if (isObstacle) {
+  if (isObstacle === 1) {
     menu.innerHTML = `
       <div class="slot-menu-title">Obstacle Slot</div>
       <div class="slot-menu-actions">
         <button class="slot-menu-action obstacle-action" onclick="clearObstacle('${rowId}',${slotIdx})">Remove obstacle</button>
         <button class="slot-menu-action danger" onclick="removeSlot('${rowId}',${slotIdx});closeSlotMenu()">Delete slot</button>
       </div>`;
-  } else {
+  } else if (isObstacle === 2) {
+    menu.innerHTML = `
+      <div class="slot-menu-title">Invisible Slot</div>
+      <div class="slot-menu-actions">
+        <button class="slot-menu-action obstacle-action" onclick="clearInvisible('${rowId}',${slotIdx})">Remove invisible</button>
+        <button class="slot-menu-action danger" onclick="removeSlot('${rowId}',${slotIdx});closeSlotMenu()">Delete slot</button>
+      </div>`;
+  }
+  else {
     const pool = poolSingers();
     menu.innerHTML = `
       <div class="slot-menu-search">
@@ -1411,6 +1432,7 @@ function openSlotMenu(slotEl, rowId, slotIdx, isObstacle) {
         <button class="slot-menu-action" onclick="insertSlot('${rowId}',${slotIdx},'left')">← Insert left</button>
         <button class="slot-menu-action" onclick="insertSlot('${rowId}',${slotIdx},'right')">Insert right →</button>
         <button class="slot-menu-action obstacle-action" style="min-width:100%;flex-basis:100%;" onclick="markObstacle('${rowId}',${slotIdx})">🚫 Mark as obstacle</button>
+        <button class="slot-menu-action obstacle-action" style="min-width:100%;flex-basis:100%;" onclick="markInvisible('${rowId}',${slotIdx})">☁ Mark as invisible</button>
         <button class="slot-menu-action danger" style="min-width:100%;flex-basis:100%;" onclick="removeSlot('${rowId}',${slotIdx});closeSlotMenu()">✕ Delete slot</button>
       </div>`;
   }
@@ -1494,6 +1516,20 @@ function markObstacle(rowId, slotIdx) {
 }
 
 function clearObstacle(rowId, slotIdx) {
+  const row = rows.find(r => r.id === rowId);
+  if (row) row.slots[slotIdx] = null;
+  closeSlotMenu();
+  render();
+}
+
+function markInvisible(rowId, slotIdx) {
+  const row = rows.find(r => r.id === rowId);
+  if (row) row.slots[slotIdx] = '__INVISIBLE__';
+  closeSlotMenu();
+  render();
+}
+
+function clearInvisible(rowId, slotIdx) {
   const row = rows.find(r => r.id === rowId);
   if (row) row.slots[slotIdx] = null;
   closeSlotMenu();
@@ -1615,7 +1651,7 @@ function reshapeStage() {
   
   const colct = Math.ceil(sct / rowct);
   for (let i = 0; i < rowct; i++) {
-    addRow(colct, i % 2 !== 0);
+    addRow(colct, 0);
   }
 
   closeModal('reshapeStageModal');
@@ -1883,7 +1919,7 @@ ${clone.outerHTML}
 function init() {
   rows = [
     { id: uid(), slots: [null, null, null, null, null, null], stagger: false },
-    { id: uid(), slots: [null, null, null, null, null, null], stagger: true },
+    { id: uid(), slots: [null, null, null, null, null, null], stagger: false },
     { id: uid(), slots: [null, null, null, null, null, null], stagger: false },
   ];
   render();
