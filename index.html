@@ -359,6 +359,31 @@
     text-align: center;
   }
 
+  .stage-back-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+    padding-top: 8px;
+    margin-bottom: 24px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .stage-conductor-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 8px;
+    margin-bottom: 24px;
+    width: 100%;
+    text-align: center;
+  }
+
   /* ── Risers / Rows ── */
   .riser-row {
     display: flex;
@@ -933,6 +958,7 @@
     <div class="stage-scroll">
       <div class="stage" id="stage">
         <div class="stage-front-label">▲ FRONT OF STAGE ▲</div>
+        <div class="stage-conductor-label">Conductor</div>
       </div>
     </div>
 
@@ -1261,8 +1287,10 @@ function makeSingerCard(singer, source) {
 function renderStage() {
   const stage = document.getElementById('stage');
   const frontLabel = stage.querySelector('.stage-front-label');
+  const conductorLabel = stage.querySelector('.stage-conductor-label');
   stage.innerHTML = '';
   stage.appendChild(frontLabel);
+  stage.appendChild(conductorLabel)
   rows.forEach((row, rowIdx) => {
 
     // Insert-row zone ABOVE this row (between rows)
@@ -1352,6 +1380,11 @@ function renderStage() {
 
       slotsEl.appendChild(slot);
     });
+    const endRowLabel = document.createElement('div');
+    endRowLabel.className = 'riser-label';
+    endRowLabel.textContent = `Row ${rowIdx + 1}`;
+    slotsEl.appendChild(endRowLabel);
+
 
     const addSlot = document.createElement('button');
     addSlot.className = 'add-slot-btn';
@@ -1359,9 +1392,9 @@ function renderStage() {
     addSlot.innerHTML = '+';
     addSlot.onclick = () => addSlot2Row(row.id);
     slotsEl.appendChild(addSlot);
-
     rowEl.appendChild(slotsEl);
     stage.prepend(rowEl);
+
   });
 
   const insertBottom = document.createElement('div');
@@ -1372,9 +1405,10 @@ function renderStage() {
     </div>`;
   //stage.appendChild(insertBottom);
   stage.insertBefore(insertBottom, stage.children[stage.children.length - 1])
-
-  
-
+    const backOfStage = document.createElement('div')
+  backOfStage.className = 'stage-back-label'
+  backOfStage.textContent = '▼ BACK OF STAGE ▼'
+  stage.prepend(backOfStage)
 }
 
 function renderLegend() {
