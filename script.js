@@ -527,7 +527,7 @@ document.addEventListener('keydown', e => {
 
 // override command p to print
 document.addEventListener('keydown', e => {
-  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'p') {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
     // 1. Prevent the browser's default print dialog from opening
     event.preventDefault();
     
