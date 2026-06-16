@@ -10,8 +10,8 @@ A lightweight webapp for creating choral seating charts.
 
 This site serves as a simple tool for the production of seating charts, particularly designed with choirs in mind.
 - Drag and drop functionality
-- Click empty tile -> Grey out tiles to show gaps
-- Click empty tile -> Mark tiles invisible for formatting
+- Click empty tile / right click singer tile -> Grey out tiles to show gaps
+- Click empty tile / right click singer tile -> Mark tiles invisible for formatting
 - Search for particular names (also available in tile click menu)
 - Filter for parts (also available in tile click menu)
 - Automatic chair numbering

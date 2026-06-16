@@ -1087,7 +1087,7 @@
       <ul>
         <li>Add singers via <em>+ Add Singer</em> or import from Excel</li>
         <li>Drag singers from the pool onto stage slots</li>
-        <li>Click an empty slot to search &amp; place a singer, insert cells/rows, or mark it as an obstacle</li>
+        <li>Click an empty slot (or right click a singer slot) to search &amp; place a singer, insert cells/rows, or mark it as an obstacle</li>
         <li>Use the pool search bar and part filters to quickly find singers</li>
         <li>Save your layout with <em>Save / Load</em> and restore it later</li>
         <li>Print or export to PDF with the <em>Print / PDF</em> button</li>
@@ -1364,6 +1364,16 @@ function renderStage() {
           const card = makeSingerCard(s, { rowId: row.id, slotIdx });
           card.style.width = '88px';
           card.style.height = '70px';
+
+          // right click listener
+          card.addEventListener('contextmenu', (event) => {
+            // 1. Stop the browser's default right-click menu from appearing
+            event.preventDefault();
+
+            // 2. Run your custom logic here
+            openSlotMenu(slot, row.id, slotIdx, false)
+          });
+
           slot.appendChild(card);
           slotDel.style.display = 'none';
           slot.style.border = 'none';
