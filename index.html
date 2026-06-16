@@ -1725,12 +1725,16 @@ function handleDrop(targetRowId, targetSlotIdx, currentOccupant) {
   if (!targetRow) return;
   if (dragSource && typeof dragSource === 'object') {
     const srcRow = rows.find(r => r.id === dragSource.rowId);
-    if (srcRow) srcRow.slots[dragSource.slotIdx] = null;
+    
+    if (srcRow) {
+      const replacedSinger = targetRow.slots[targetSlotIdx];
+      if (replacedSinger) srcRow.slots[dragSource.slotIdx] = replacedSinger;
+      else srcRow.slots[dragSource.slotIdx] = null}
+      refreshSingers(dragSource.rowId);
   }
   targetRow.slots[targetSlotIdx] = draggedSingerId;
-  const tarSinger = singers.find(s => s.id === draggedSingerId);
-  if (tarSinger) tarSinger.singerRow = targetSlotIdx + 1;
   refreshSingers(targetRowId);
+  
   render();
   showToast(`${getSinger(draggedSingerId)?.name} placed`);
 }
