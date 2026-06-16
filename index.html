@@ -1087,7 +1087,7 @@
       <ul>
         <li>Add singers via <em>+ Add Singer</em> or import from Excel</li>
         <li>Drag singers from the pool onto stage slots</li>
-        <li>Click an empty slot (or right click a singer slot) to search &amp; place a singer, insert cells/rows, or mark it as an obstacle</li>
+        <li>Click an empty slot (or right click any slot) to search &amp; place a singer, insert cells/rows, or mark it as an obstacle</li>
         <li>Use the pool search bar and part filters to quickly find singers</li>
         <li>Save your layout with <em>Save / Load</em> and restore it later</li>
         <li>Print or export to PDF with the <em>Print / PDF</em> button</li>
@@ -1298,7 +1298,7 @@ function renderStage() {
     insertZone.className = 'insert-row-zone';
     insertZone.innerHTML = `
       <div class="insert-row-btns">
-        <button class="insert-row-btn" onclick="insertRow(${rowIdx}, false)">+ Row above</button>
+        <button class="insert-row-btn" onclick="insertRow(${rowIdx - 1}, false)">+ Insert Row Here</button>
       </div>`;
     stage.prepend(insertZone);
 
@@ -1324,12 +1324,19 @@ function renderStage() {
     row.slots.forEach((singerId, slotIdx) => {
       const slot = document.createElement('div');
       slot.className = 'slot';
+      
 
       if (singerId === '__OBSTACLE__') {
         slot.classList.add('obstacle');
         slot.title = 'Obstacle / forced empty';
         // allow right-click or click to remove obstacle
         slot.addEventListener('click', () => openSlotMenu(slot, row.id, slotIdx, 1));
+        // right click listener
+          slot.addEventListener('contextmenu', (event) => {
+            // 1. Stop the browser's default right-click menu from appearing
+            event.preventDefault();
+            openSlotMenu(slot, row.id, slotIdx, 1)
+          });      
         slotsEl.appendChild(slot);
         return;
       }
@@ -1339,6 +1346,12 @@ function renderStage() {
         slot.title = 'Invisible tile for staggering';
         // allow right-click or click to remove invis
         slot.addEventListener('click', () => openSlotMenu(slot, row.id, slotIdx, 2));
+        // right click listener
+          slot.addEventListener('contextmenu', (event) => {
+            // 1. Stop the browser's default right-click menu from appearing
+            event.preventDefault();
+            openSlotMenu(slot, row.id, slotIdx, 2)
+          });      
         slotsEl.appendChild(slot);
         return;
       }
@@ -1355,8 +1368,15 @@ function renderStage() {
       slotDel.className = 'slot-delete';
       slotDel.textContent = '✕';
       slotDel.title = 'Remove slot';
-      slotDel.onclick = (e) => { e.stopPropagation(); removeSlot(row.id, slotIdx); };
+      slotDel.onclick = (e) => { e.stopPropagation(); removeSlot(row.id, slotIdx);};
       slot.appendChild(slotDel);
+
+      // right click listener
+          slot.addEventListener('contextmenu', (event) => {
+            // 1. Stop the browser's default right-click menu from appearing
+            event.preventDefault();
+            openSlotMenu(slot, row.id, slotIdx, false)
+          });      
 
       if (singerId) {
         const s = getSinger(singerId);
@@ -1364,16 +1384,6 @@ function renderStage() {
           const card = makeSingerCard(s, { rowId: row.id, slotIdx });
           card.style.width = '88px';
           card.style.height = '70px';
-
-          // right click listener
-          card.addEventListener('contextmenu', (event) => {
-            // 1. Stop the browser's default right-click menu from appearing
-            event.preventDefault();
-
-            // 2. Run your custom logic here
-            openSlotMenu(slot, row.id, slotIdx, false)
-          });
-
           slot.appendChild(card);
           slotDel.style.display = 'none';
           slot.style.border = 'none';
@@ -1411,10 +1421,10 @@ function renderStage() {
   insertBottom.className = 'insert-row-zone';
   insertBottom.innerHTML = `
     <div class="insert-row-btns">
-      <button class="insert-row-btn" onclick="insertRow(-1, false)">+ Row at front</button>
+      <button class="insert-row-btn" onclick="insertRow(rows.length - 1, false)">+ Insert Row Here </button>
     </div>`;
-  //stage.appendChild(insertBottom);
-  stage.insertBefore(insertBottom, stage.children[stage.children.length - 1])
+  stage.prepend(insertBottom);
+  //stage.insertBefore(insertBottom, stage.children[stage.children.length - 2])
     const backOfStage = document.createElement('div')
   backOfStage.className = 'stage-back-label'
   backOfStage.textContent = '▼ BACK OF STAGE ▼'
@@ -1451,15 +1461,17 @@ function openSlotMenu(slotEl, rowId, slotIdx, isObstacle) {
 
   if (isObstacle === 1) {
     menu.innerHTML = `
-      <div class="slot-menu-title">Obstacle Slot</div>
       <div class="slot-menu-actions">
+        <button class="slot-menu-action" onclick="insertSlot('${rowId}',${slotIdx},'left')">← Insert left</button>
+        <button class="slot-menu-action" onclick="insertSlot('${rowId}',${slotIdx},'right')">Insert right →</button>
         <button class="slot-menu-action obstacle-action" onclick="clearObstacle('${rowId}',${slotIdx})">Remove obstacle</button>
         <button class="slot-menu-action danger" onclick="removeSlot('${rowId}',${slotIdx});closeSlotMenu()">Delete slot</button>
       </div>`;
   } else if (isObstacle === 2) {
     menu.innerHTML = `
-      <div class="slot-menu-title">Invisible Slot</div>
       <div class="slot-menu-actions">
+        <button class="slot-menu-action" onclick="insertSlot('${rowId}',${slotIdx},'left')">← Insert left</button>
+        <button class="slot-menu-action" onclick="insertSlot('${rowId}',${slotIdx},'right')">Insert right →</button>
         <button class="slot-menu-action obstacle-action" onclick="clearInvisible('${rowId}',${slotIdx})">Remove invisible</button>
         <button class="slot-menu-action danger" onclick="removeSlot('${rowId}',${slotIdx});closeSlotMenu()">Delete slot</button>
       </div>`;
@@ -1546,15 +1558,36 @@ function placeSingerInSlot(rowId, slotIdx, singerId) {
   const row = rows.find(r => r.id === rowId);
   if (!row) return;
   row.slots[slotIdx] = singerId;
-  const s = getSinger(singerId);
-  if (s) s.singerRow = slotIdx + 1;
+  refreshSingers(rowId);
   render();
   showToast(`${getSinger(singerId)?.name} placed`);
+}
+
+function refreshSingers(rowId) {
+  // the insert function doesn't update these properly
+  const row = rows.find(r => r.id === rowId);
+  if (!row) return;
+  var i = 0
+  row.slots.forEach((singerId, slotIdx) => {
+    if (singerId != null) {
+      const s = getSinger(singerId)
+      if (s) {
+        s.singerRow = i + 1;
+      }
+    }
+    //dont count invisible / obstacle
+    if (singerId != '__INVISIBLE__' && singerId != '__OBSTACLE__'){
+      i = i + 1
+    }
+  });
+  
+  render();
 }
 
 function markObstacle(rowId, slotIdx) {
   const row = rows.find(r => r.id === rowId);
   if (row) row.slots[slotIdx] = '__OBSTACLE__';
+  refreshSingers(rowId);
   closeSlotMenu();
   render();
 }
@@ -1562,6 +1595,7 @@ function markObstacle(rowId, slotIdx) {
 function clearObstacle(rowId, slotIdx) {
   const row = rows.find(r => r.id === rowId);
   if (row) row.slots[slotIdx] = null;
+  refreshSingers(rowId);
   closeSlotMenu();
   render();
 }
@@ -1569,6 +1603,7 @@ function clearObstacle(rowId, slotIdx) {
 function markInvisible(rowId, slotIdx) {
   const row = rows.find(r => r.id === rowId);
   if (row) row.slots[slotIdx] = '__INVISIBLE__';
+  refreshSingers(rowId);
   closeSlotMenu();
   render();
 }
@@ -1576,6 +1611,7 @@ function markInvisible(rowId, slotIdx) {
 function clearInvisible(rowId, slotIdx) {
   const row = rows.find(r => r.id === rowId);
   if (row) row.slots[slotIdx] = null;
+  refreshSingers(rowId);
   closeSlotMenu();
   render();
 }
@@ -1586,6 +1622,7 @@ function insertSlot(rowId, slotIdx, side) {
   const insertAt = side === 'right' ? slotIdx + 1 : slotIdx;
   row.slots.splice(insertAt, 0, null);
   closeSlotMenu();
+  refreshSingers(rowId);
   render();
   showToast(`Slot inserted`);
 }
@@ -1678,6 +1715,7 @@ function removeSlot(rowId, slotIdx) {
   const row = rows.find(r => r.id === rowId);
   if (!row) return;
   row.slots.splice(slotIdx, 1);
+  refreshSingers(rowId);
   render();
 }
 
@@ -1692,6 +1730,7 @@ function handleDrop(targetRowId, targetSlotIdx, currentOccupant) {
   targetRow.slots[targetSlotIdx] = draggedSingerId;
   const tarSinger = singers.find(s => s.id === draggedSingerId);
   if (tarSinger) tarSinger.singerRow = targetSlotIdx + 1;
+  refreshSingers(targetRowId);
   render();
   showToast(`${getSinger(draggedSingerId)?.name} placed`);
 }
