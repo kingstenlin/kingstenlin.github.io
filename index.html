@@ -1227,7 +1227,7 @@ function renderPool() {
       pool.appendChild(lbl);
       const row = document.createElement('div');
       row.className = 'pool-section-group';
-      group.forEach(s => row.appendChild(makeSingerCard(s, 'pool')));
+      group.forEach(s => {s.singerRow = null; row.appendChild(makeSingerCard(s, 'pool'))});
       pool.appendChild(row);
     });
   }
